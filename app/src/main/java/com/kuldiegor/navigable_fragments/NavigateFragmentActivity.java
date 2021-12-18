@@ -27,7 +27,7 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
-        navigate(getDefaultFragment(),null,false);
+        navigate(getDefaultFragment(),false,false);
     }
 
     /**
@@ -36,8 +36,8 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
      * @param fragmentClass
      * @param isRemoval
      */
-    public void navigate(Class<? extends Fragment> fragmentClass,boolean isRemoval){
-        navigate(fragmentClass,null,isRemoval);
+    public void navigate(Class<? extends Fragment> fragmentClass,boolean isRemoval,boolean inBackStack){
+        navigate(fragmentClass,null,isRemoval,inBackStack);
     }
 
     /**
@@ -47,7 +47,7 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
      * @param fragmentClass
      */
     public void navigate(Class<? extends Fragment> fragmentClass){
-        navigate(fragmentClass,null,false);
+        navigate(fragmentClass,null,false,true);
     }
 
     /**
@@ -55,39 +55,38 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
      * @param fragmentClass class object
      * @param bundle bundle with arguments, can be null
      * @param isRemoval true - detach and destroy current fragment. false - detach only, without destroying current fragment
+     * @param inBackStack true - add fragment transaction in back stack
      */
-    public void navigate(Class<? extends Fragment> fragmentClass,Bundle bundle,boolean isRemoval){
+    public void navigate(Class<? extends Fragment> fragmentClass,Bundle bundle,boolean isRemoval,boolean inBackStack){
         try {
             FragmentManager fm = getSupportFragmentManager();
             Fragment currentFragment = fm.findFragmentById(R.id.fragment_container);
-            if (currentFragment!=null){
-                FragmentTransaction fragmentTransaction = fm.beginTransaction()
-                        .detach(currentFragment);
-                if (isRemoval){
-                    fragmentTransaction.remove(currentFragment);
-                }
-                fragmentTransaction.commit();
-            }
             Fragment fragment = fm.findFragmentByTag(fragmentClass.getCanonicalName());
             if (fragment == null) {
                 fragment = fragmentClass.getConstructor().newInstance();
                 if (bundle!=null){
                     fragment.setArguments(bundle);
                 }
-                fm.beginTransaction()
-                        .add(R.id.fragment_container,fragment,fragmentClass.getCanonicalName())
-                        .commit();
             } else {
                 (fragment).setArguments(bundle);
-                fm.beginTransaction()
-                        .attach(fragment)
-                        .commit();
             }
+            FragmentTransaction fragmentTransaction = fm.beginTransaction();
+            if (currentFragment!=null){
+                fragmentTransaction.detach(currentFragment);
+                if (isRemoval){
+                    fragmentTransaction.remove(currentFragment);
+                }
+            }
+            fragmentTransaction.add(R.id.fragment_container,fragment,fragmentClass.getCanonicalName());
+            fragmentTransaction.attach(fragment);
+            if (inBackStack){
+                fragmentTransaction.addToBackStack(fragmentClass.getCanonicalName());
+            }
+            fragmentTransaction.commit();
             this.currentFragment = fragment;
             currentFragmentTag = fragmentClass.getCanonicalName();
         } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalArgumentException("Class fragment does not have a constructor");
-            //e.printStackTrace();
         }
     }
 }
