@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
  * Author kuldiegor github https://github.com/kuldiegor/NavigableFragments
  */
 public abstract class NavigateFragmentActivity extends AppCompatActivity {
+    private static final String CURRENT_FRAGMENT_TAG = "CurrentFragmentTag";
     @LayoutRes
     protected int getLayoutResId() {
         return R.layout.activity_fragment;
@@ -24,10 +25,26 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
     protected String currentFragmentTag;
 
     @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        savedInstanceState.putString(CURRENT_FRAGMENT_TAG,currentFragmentTag);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
-        navigate(getDefaultFragment(),false,false);
+        if (savedInstanceState==null) {
+            navigate(getDefaultFragment(), false, false);
+        } else {
+            currentFragmentTag = savedInstanceState.getString(CURRENT_FRAGMENT_TAG);
+            currentFragment = getFragmentByTag(currentFragmentTag);
+        }
+    }
+
+    private Fragment getFragmentByTag(String fragmentTag){
+        FragmentManager fm = getSupportFragmentManager();
+        return fm.findFragmentByTag(fragmentTag);
     }
 
     /**
@@ -88,5 +105,10 @@ public abstract class NavigateFragmentActivity extends AppCompatActivity {
         } catch (IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalArgumentException("Class fragment does not have a constructor");
         }
+    }
+
+    public void popBackStack(){
+        FragmentManager fm = getSupportFragmentManager();
+        fm.popBackStack();
     }
 }
